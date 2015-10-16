@@ -36,25 +36,46 @@ class FlaskrTestCase(unittest.TestCase):
         assert 'A trip' in responseJSON["name"]
 
     def test_getting_trip(self):
-        response = self.app.post('/trips/',
+        # create trip response with user_object_id
+        trip_response = self.app.post('/trips/',
             data=json.dumps(dict(
-                name="Another trip"
+                name="A trip"
             )),
         content_type='application/json')
 
-        postResponseJSON = json.loads(response.data.decode())
-        postedObjectID = postResponseJSON["_id"]
+        tripPostResponseJSON = json.loads(trip_response.data.decode())
+        tripPostedObjectID = tripPostResponseJSON["_id"]
 
-        response = self.app.get('/trips/'+postedObjectID)
-        # response = self.app.get('/trips/')
+        response = self.app.get('/trips/'+tripPostedObjectID)
         response_json = json.loads(response.data.decode())
 
         self.assertEqual(response.status_code, 200)
-        assert 'Another trip' in response_json["name"]
+        assert 'A trip' in response_json["name"]
 
         def test_getting_non_existent_trip(self):
-            response = self.app.get('/trips/asdf1415512')
+            response = self.app.get('/trips/anyeonghaseo')
             self.assertEqual(response.status_code, 404)
+
+    def test_getting_user_trips(self):
+        trip_response = self.app.post('/trips/',
+            data=json.dumps(dict(
+                name="A trip"
+            )),
+        content_type='application/json')
+
+        trip_response = self.app.post('/trips/',
+            data=json.dumps(dict(
+                name="A second trip"
+            )),
+        content_type='application/json')
+
+        response = self.app.get('/trips/')
+        response_json = json.loads(response.data.decode())
+
+        self.assertEqual(trip_response.status_code, 200)
+
+        assert "A trip" in response_json[0]["name"]
+
 
     def test_putting_trip(self):
         response = self.app.post('/trips/',
@@ -103,11 +124,11 @@ class FlaskrTestCase(unittest.TestCase):
             )),
         content_type='application/json')
 
-        responseJSON = json.loads(response.data.decode())
+        response_json = json.loads(response.data.decode())
 
         self.assertEqual(response.status_code, 200)
         assert 'application/json' in response.content_type
-        assert 'Adrian' in responseJSON["name"]
+        assert 'Adrian' in response_json["name"]
 
     def test_getting_user(self):
         response = self.app.post('/users/',

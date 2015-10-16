@@ -1,7 +1,8 @@
-from flask import Flask, request, make_response, jsonify
+from flask import Flask, request, make_response, jsonify, json
 from flask_restful import Resource, Api
 from pymongo import MongoClient
 from bson.objectid import ObjectId
+from bson.json_util import dumps
 from utils.mongo_json_encoder import JSONEncoder
 
 # Basic Setup
@@ -25,17 +26,26 @@ class Trip(Resource):
         return trip_object
 
     # get trip with id or username
-    def get(self, trip_object_id=None, user_object_id=None):
+    @requires_auth
+    def get(self, trip_object_id=None):
         # access trip object collection
         trip_object_collection = app.db.trips
-        trip_object = trip_object_collection.find_one({"_id": ObjectId(trip_object_id)})
+        returned_object = None
+        if trip_object_id is not None:
+            # get trip by id
+            returned_object = trip_object_collection.find_one({"_id": ObjectId(trip_object_id)})
+        else:
+            cursor_object = trip_object_collection.find()
+            # convert cursor object
+            json_object = dumps(cursor_object)
+            returned_object = json.loads(json_object)
         # check if trip_object is found or not
-        if trip_object is None:
+        if returned_object is None:
             response = jsonify(data=[])
             response.status_code = 404
             return response
         else:
-            return trip_object
+            return returned_object
 
     # update trip with id
     def put(self, trip_object_id):
@@ -70,21 +80,6 @@ class Trip(Resource):
             response.status_code = 200
             return response
 
-    def get_trips(self, user_object_id):
-        # access user collection
-        trip_object_collection = app.db.trips
-        trip_objects = trip_object_collection.find({"user_object_id": ObjectId(user_object_id)})
-        if trip_objects is None:
-            response = jsonify(data=[])
-            response.status_code = 404
-            return response
-        else:
-            return trip_objects
-
-
-# Add REST Trip resource to API
-api.add_resource(Trip, '/trips/', '/trips/<string:trip_object_id>')
-
 
 class User(Resource):
 
@@ -115,6 +110,7 @@ class User(Resource):
 
 # Add REST User resource to API
 api.add_resource(User, '/users/', '/users/<string:user_object_id>')
+api.add_resource(Trip, '/trips/', '/trips/<string:trip_object_id>')
 
 # provide a custom JSON serializer for flaks_restful
 @api.representation('application/json')
