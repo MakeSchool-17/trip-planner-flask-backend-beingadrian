@@ -2,10 +2,10 @@ from functools import wraps
 from flask import request, Response, jsonify
 
 def check_auth(username, password):
-    return username == 'admin' and password == 'secret'
+    return username == 'beingadrian' and password == 'secret'
 
 def requires_auth(f):
-    @warps(f)
+    @wraps(f)
     def decorated(*args, **kwargs):
         auth = request.authorization
         if not auth or check_auth(auth.username, auth.password):

@@ -2,6 +2,7 @@ import server
 import unittest
 import json
 from pymongo import MongoClient
+import bcrypt
 
 
 class FlaskrTestCase(unittest.TestCase):
@@ -120,7 +121,8 @@ class FlaskrTestCase(unittest.TestCase):
     def test_posting_user(self):
         response = self.app.post('/users/',
             data=json.dumps(dict(
-                name="Adrian"
+                username="beingadrian",
+                password="abc123"
             )),
         content_type='application/json')
 
@@ -128,12 +130,17 @@ class FlaskrTestCase(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         assert 'application/json' in response.content_type
-        assert 'Adrian' in response_json["name"]
+        assert 'beingadrian' in response_json["username"]
+
+        # test password
+        pw_hash = response_json["password"].encode('utf-8')
+        self.assertEqual(bcrypt.hashpw('abc123'.encode('utf-8'), pw_hash), pw_hash)
 
     def test_getting_user(self):
         response = self.app.post('/users/',
             data=json.dumps(dict(
-                name="Another Adrian"
+                username="beingadrian",
+                password="abc123"
             )),
         content_type='application/json')
 
@@ -144,7 +151,7 @@ class FlaskrTestCase(unittest.TestCase):
         response_json = json.loads(response.data.decode())
 
         self.assertEqual(response.status_code, 200)
-        assert 'Another Adrian' in response_json["name"]
+        assert 'beingadrian' in response_json["username"]
 
         def test_getting_non_existent_trip(self):
             response = self.app.get('/users/asdf1415512')
