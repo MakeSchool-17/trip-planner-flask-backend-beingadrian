@@ -4,8 +4,9 @@ from pymongo import MongoClient
 from bson.objectid import ObjectId
 from bson.json_util import dumps
 from utils.mongo_json_encoder import JSONEncoder
-from auth import requires_auth, check_auth
+from auth import requires_auth
 import bcrypt
+import base64
 
 # Basic Setup
 app = Flask(__name__)
@@ -28,7 +29,7 @@ class Trip(Resource):
         return trip_object
 
     # get trip with id or username
-    # @requires_auth
+    @requires_auth
     def get(self, trip_object_id=None):
         # access trip object collection
         trip_object_collection = app.db.trips
@@ -50,6 +51,7 @@ class Trip(Resource):
             return returned_object
 
     # update trip with id
+    @requires_auth
     def put(self, trip_object_id):
         # access new_trip_id
         new_trip_object = request.json
@@ -91,8 +93,9 @@ class User(Resource):
         new_user_object = request.json
         # check
         try:
-            password = new_user_object["password"].encode('utf-8')
-            hashed_password = bcrypt.hashpw(password, bcrypt.gensalt(12))
+            password = new_user_object["password"]
+            password_encoded = password.encode('utf-8')
+            hashed_password = bcrypt.hashpw(password_encoded, bcrypt.gensalt(12))
             new_user_object["password"] = hashed_password.decode('utf-8')
         except:
             # no password
@@ -116,8 +119,6 @@ class User(Resource):
             return response
         else:
             return user_object
-
-
 
 # Add REST User resource to API
 api.add_resource(User, '/users/', '/users/<string:user_object_id>')

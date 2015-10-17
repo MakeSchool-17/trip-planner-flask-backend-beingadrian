@@ -3,9 +3,17 @@ import unittest
 import json
 from pymongo import MongoClient
 import bcrypt
-
+import base64
+from requests.auth import HTTPBasicAuth
+from flask import request
 
 class FlaskrTestCase(unittest.TestCase):
+
+    # authorization
+    base64_obj = "beingadrian:abc123"
+    base64_str = base64.encodebytes(base64_obj.encode('utf-8'))
+    basic_str = "Basic " + base64_str.decode('utf-8').strip('\n')
+    headers = {"Authorization": basic_str}
 
     def setUp(self):
         self.app = server.app.test_client()
@@ -24,6 +32,7 @@ class FlaskrTestCase(unittest.TestCase):
     # Trip tests
 
     def test_posting_trip(self):
+        # post trip
         response = self.app.post('/trips/',
             data=json.dumps(dict(
                 name="A trip"
@@ -37,17 +46,26 @@ class FlaskrTestCase(unittest.TestCase):
         assert 'A trip' in responseJSON["name"]
 
     def test_getting_trip(self):
+        # post user
+        user_response = self.app.post('/users/',
+            data=json.dumps(dict(
+                username="beingadrian",
+                password="abc123"
+            )),
+            content_type='application/json')
+
         # create trip response with user_object_id
         trip_response = self.app.post('/trips/',
             data=json.dumps(dict(
                 name="A trip"
             )),
-        content_type='application/json')
+        content_type='application/json',
+        headers=self.headers)
 
-        tripPostResponseJSON = json.loads(trip_response.data.decode())
-        tripPostedObjectID = tripPostResponseJSON["_id"]
+        trippost_response_json = json.loads(trip_response.data.decode())
+        tripposted_object_id = trippost_response_json["_id"]
 
-        response = self.app.get('/trips/'+tripPostedObjectID)
+        response = self.app.get('/trips/'+tripposted_object_id, headers=self.headers)
         response_json = json.loads(response.data.decode())
 
         self.assertEqual(response.status_code, 200)
@@ -58,6 +76,15 @@ class FlaskrTestCase(unittest.TestCase):
             self.assertEqual(response.status_code, 404)
 
     def test_getting_user_trips(self):
+        # post user (to get authentication)
+        user_response = self.app.post('/users/',
+            data=json.dumps(dict(
+                username="beingadrian",
+                password="abc123"
+            )),
+            content_type='application/json')
+
+        # post trips
         trip_response = self.app.post('/trips/',
             data=json.dumps(dict(
                 name="A trip"
@@ -70,7 +97,7 @@ class FlaskrTestCase(unittest.TestCase):
             )),
         content_type='application/json')
 
-        response = self.app.get('/trips/')
+        response = self.app.get('/trips/', headers=self.headers)
         response_json = json.loads(response.data.decode())
 
         self.assertEqual(trip_response.status_code, 200)
@@ -79,21 +106,32 @@ class FlaskrTestCase(unittest.TestCase):
 
 
     def test_putting_trip(self):
+        # post trip
         response = self.app.post('/trips/',
             data=json.dumps(dict(
                 name="Some trip"
             )),
             content_type='application/json')
 
-        postResponseJSON = json.loads(response.data.decode())
-        postedObjectID = postResponseJSON["_id"]
+        post_response_json = json.loads(response.data.decode())
+        posted_object_id = post_response_json["_id"]
 
-        response = self.app.put('/trips/'+postedObjectID,
+        # post user
+        user_response = self.app.post('/users/',
+            data=json.dumps(dict(
+                username="beingadrian",
+                password="abc123"
+            )),
+            content_type='application/json')
+
+        # put trip (update trip)
+        response = self.app.put('/trips/'+posted_object_id,
             data=json.dumps(dict(
                 name="Some trip",
                 waypoint=[{"Disneyland": (10, 21)}]
             )),
-            content_type='application/json')
+            content_type='application/json',
+            headers=self.headers)
 
         response_json = json.loads(response.data.decode())
 
@@ -108,10 +146,10 @@ class FlaskrTestCase(unittest.TestCase):
             )),
             content_type='application/json')
 
-        postResponseJSON = json.loads(response.data.decode())
-        postedObjectID = postResponseJSON["_id"]
+        post_response_json = json.loads(response.data.decode())
+        posted_object_id = post_response_json["_id"]
 
-        response = self.app.delete('/trips/'+postedObjectID)
+        response = self.app.delete('/trips/'+posted_object_id)
 
         self.assertEqual(response.status_code, 200)
         assert 'application/json' in response.content_type
@@ -144,10 +182,10 @@ class FlaskrTestCase(unittest.TestCase):
             )),
         content_type='application/json')
 
-        postResponseJSON = json.loads(response.data.decode())
-        postedObjectID = postResponseJSON["_id"]
+        post_response_json = json.loads(response.data.decode())
+        posted_object_id = post_response_json["_id"]
 
-        response = self.app.get('/users/'+postedObjectID)
+        response = self.app.get('/users/'+posted_object_id)
         response_json = json.loads(response.data.decode())
 
         self.assertEqual(response.status_code, 200)
