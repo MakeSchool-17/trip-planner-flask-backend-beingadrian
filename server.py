@@ -120,10 +120,9 @@ class User(Resource):
         check_result = user_object_collection.find_one({"username": new_user_object["username"]})
         if check_result is not None:
             # username already exists
-            print("Username already exists")
-        else:
-            # success adding new user
-            print("Success")
+            response = jsonify(data=[])
+            response.status_code = 409
+            return response
 
         result = user_object_collection.insert_one(new_user_object)
         user_object = user_object_collection.find_one({"_id": ObjectId(result.inserted_id)})

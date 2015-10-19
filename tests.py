@@ -195,11 +195,10 @@ class FlaskrTestCase(unittest.TestCase):
             )),
             content_type='application/json')
 
-        import pdb; pdb.set_trace()
-
         response_json = json.loads(response.data.decode())
 
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(new_response.status_code, 409)
         assert 'application/json' in response.content_type
         assert 'beingadrian' in response_json["username"]
 
