@@ -15,6 +15,7 @@ class FlaskrTestCase(unittest.TestCase):
     basic_str = "Basic " + base64_str.decode('utf-8').strip('\n')
     headers = {"Authorization": basic_str}
 
+
     def setUp(self):
         self.app = server.app.test_client()
         # Run app in testing mode to retrieve exceptions and stack traces
@@ -29,10 +30,7 @@ class FlaskrTestCase(unittest.TestCase):
         db.drop_collection('trips')
         db.drop_collection('users')
 
-    # Trip tests
-
-    def test_posting_trip(self):
-        # post user
+        # create user to start with
         user_response = self.app.post('/users/',
             data=json.dumps(dict(
                 username="beingadrian",
@@ -40,6 +38,11 @@ class FlaskrTestCase(unittest.TestCase):
             )),
             content_type='application/json')
 
+    # ===================
+    #   TRIP TESTS
+    # ===================
+
+    def test_posting_trip(self):
         # post trip
         response = self.app.post('/trips/',
             data=json.dumps(dict(
@@ -55,19 +58,13 @@ class FlaskrTestCase(unittest.TestCase):
         assert 'A trip' in response_json["name"]
 
     def test_getting_trip(self):
-        # post user
+        # ======== FIXED ========
         # [Ben-G] here, and in other cases, username and pw should be passed as
         # part of authorization header instead of as part of the body
-        # Additionally, instead of duplicating the code to create a user in each test 
+        # Additionally, instead of duplicating the code to create a user in each test
         # case that requires authentication, you can move this code into the setup function
-        user_response = self.app.post('/users/',
-            data=json.dumps(dict(
-                username="beingadrian",
-                password="abc123"
-            )),
-            content_type='application/json')
 
-        # create trip response with user_object_id
+        # create trip response
         trip_response = self.app.post('/trips/',
             data=json.dumps(dict(
                 name="A trip"
@@ -84,20 +81,13 @@ class FlaskrTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         assert 'A trip' in response_json["name"]
 
-        # [Ben-G] This test is indented incorrectly, so it won't run
-        def test_getting_non_existent_trip(self):
-            response = self.app.get('/trips/anyeonghaseo', headers=self.headers)
-            self.assertEqual(response.status_code, 404)
+    # ======== FIXED =========
+    # [Ben-G] This test is indented incorrectly, so it won't run
+    def test_getting_non_existent_trip(self):
+        response = self.app.get('/trips/123456789012345678901234', headers=self.headers)
+        self.assertEqual(response.status_code, 404)
 
     def test_getting_user_trips(self):
-        # post user (to get authentication)
-        user_response = self.app.post('/users/',
-            data=json.dumps(dict(
-                username="beingadrian",
-                password="abc123"
-            )),
-            content_type='application/json')
-
         # post trips
         trip_response = self.app.post('/trips/',
             data=json.dumps(dict(
@@ -123,14 +113,6 @@ class FlaskrTestCase(unittest.TestCase):
 
 
     def test_putting_trip(self):
-        # post user
-        user_response = self.app.post('/users/',
-            data=json.dumps(dict(
-                username="beingadrian",
-                password="abc123"
-            )),
-            content_type='application/json')
-
         # post trip
         response = self.app.post('/trips/',
             data=json.dumps(dict(
@@ -158,14 +140,7 @@ class FlaskrTestCase(unittest.TestCase):
         assert 'Some trip' in response_json["name"]
 
     def test_deleting_trip(self):
-        # post user (to get authentication)
-        user_response = self.app.post('/users/',
-            data=json.dumps(dict(
-                username="beingadrian",
-                password="abc123"
-            )),
-            content_type='application/json')
-
+        # post trip initially
         response = self.app.post('/trips/',
             data=json.dumps(dict(
                 name="Delete trip"
@@ -181,19 +156,13 @@ class FlaskrTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         assert 'application/json' in response.content_type
 
-    # User tests
+    # ===================
+    #   USER TESTS
+    # ===================
 
-    def test_posting_user(self):
-        # post user
+    def test_posting_extra_user(self):
+        # create extra user with same username
         response = self.app.post('/users/',
-            data=json.dumps(dict(
-                username="beingadrian",
-                password="abc123"
-            )),
-            content_type='application/json')
-
-        # test extra user
-        new_response = self.app.post('/users/',
             data=json.dumps(dict(
                 username="beingadrian",
                 password="abc12d"
@@ -202,36 +171,31 @@ class FlaskrTestCase(unittest.TestCase):
 
         response_json = json.loads(response.data.decode())
 
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(new_response.status_code, 409)
+        # assert that username already exists
+        self.assertEqual(response.status_code, 409)
         assert 'application/json' in response.content_type
-        assert 'beingadrian' in response_json["username"]
 
-        # test password
-        pw_hash = response_json["password"].encode('utf-8')
-        self.assertEqual(bcrypt.hashpw('abc123'.encode('utf-8'), pw_hash), pw_hash)
-
-    def test_getting_user(self):
+    def test_posting_user_without_password(self):
+        # create new user
         response = self.app.post('/users/',
             data=json.dumps(dict(
-                username="beingadrian",
-                password="abc123"
+                username="beingbob"
+                # no password
             )),
             content_type='application/json')
 
-        post_response_json = json.loads(response.data.decode())
-        posted_object_id = post_response_json["_id"]
+        response_json = json.loads(response.data.decode())
 
-        response = self.app.get('/users/'+posted_object_id)
+        # assert that password is missing using status_code 409
+        self.assertEqual(response.status_code, 400)
+
+    def test_getting_user(self):
+        # get user
+        response = self.app.get('/users/', headers=self.headers)
         response_json = json.loads(response.data.decode())
 
         self.assertEqual(response.status_code, 200)
         assert 'beingadrian' in response_json["username"]
-
-        # [Ben-G] This test is indented incorrectly, so it won't run
-        def test_getting_non_existent_trip(self):
-            response = self.app.get('/users/asdf1415512')
-            self.assertEqual(response.status_code, 404)
 
 
 if __name__ == '__main__':

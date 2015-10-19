@@ -51,11 +51,11 @@ class Trip(Resource):
         else:
             cursor_object = trip_object_collection.find({"owner": owner})
             # convert cursor object
+            # ===== FIXED =====
             # [Ben-G] You can convert the cursor into a list using the list() function
-            # trips = list(cursor_object) 
+            # trips = list(cursor_object)
             # Above line will do the same as encoding/decoding but code is cleaner
-            json_object = dumps(cursor_object)
-            returned_object = json.loads(json_object)
+            returned_object = list(cursor_object)
         # check if trip_object is found or not
         if returned_object is None:
             response = jsonify(data=[])
@@ -67,14 +67,21 @@ class Trip(Resource):
     # update trip with id
     @requires_auth
     def put(self, trip_object_id):
+        # authorization
+        user = request.authorization
+
         # access new_trip_id
         new_trip_object = request.json
+
         # access trip object collection
         trip_object_collection = app.db.trips
+
+        # ===== FIXED =====
         # [Ben-G] Might still be in the works, but you should verify that the trip that's being
         # updated belongs to the authenticated user
-        result = trip_object_collection.update_one({"_id": ObjectId(trip_object_id)}, {"$set": new_trip_object})
+        result = trip_object_collection.update_one({"_id": ObjectId(trip_object_id), "owner": user.username}, {"$set": new_trip_object})
         updated_trip_object = trip_object_collection.find_one({"_id": ObjectId(trip_object_id)})
+
         # check if trip_object is found or not
         if updated_trip_object is None:
             response = jsonify(data=[])
@@ -87,12 +94,17 @@ class Trip(Resource):
     # delete trip with id
     @requires_auth
     def delete(self, trip_object_id):
+        # authorization
+        user = request.authorization
+
         # access trip object collection
         trip_object_collection = app.db.trips
+
         # perform deletion
+        # ===== FIXED =====
         # [Ben-G] Might still be in the works, but you should verify that the trip that's being
         # deleted belongs to the authenticated user
-        result = trip_object_collection.delete_one({"_id": ObjectId(trip_object_id)})
+        result = trip_object_collection.delete_one({"_id": ObjectId(trip_object_id), "owner": user.username})
         if result.deleted_count == 0:
             # nothing deleted
             response = jsonify(data=[])
@@ -110,19 +122,24 @@ class User(Resource):
     def post(self):
         # access the JSON provided by client
         new_user_object = request.json
+
         # check
         try:
             password = new_user_object["password"]
             password_encoded = password.encode('utf-8')
             hashed_password = bcrypt.hashpw(password_encoded, bcrypt.gensalt(12))
             new_user_object["password"] = hashed_password.decode('utf-8')
+        # ===== FIXED =====
         # [Ben-G] Which type of exception are you trying to catch here? You should state the specific one.
         # If you don't specify, you catch all. Catching all exceptions is considered bad practice since you
         # might swallow errors that you would like to know about.
-        except:
+        except KeyError:
             # no password
-            print("No password")
-            return
+            response = jsonify(data=[])
+            # bad request due to missing data
+            response.status_code = 400
+            return response
+
         # access colleciton in database to store the new object
         user_object_collection = app.db.users
 
@@ -140,12 +157,18 @@ class User(Resource):
         return user_object
 
     # get user with id
+    # ======== FIXED =========
     # [Ben-G] Might in the works: this endpoint should also require authentication since it will be used
     # by the client to verify a user's credentials
-    def get(self, user_object_id):
+    @requires_auth
+    def get(self):
+        # authorization
+        user = request.authorization
+        username = user.username
+
         # access user object collection
         user_object_collection = app.db.users
-        user_object = user_object_collection.find_one({"_id": ObjectId(user_object_id)})
+        user_object = user_object_collection.find_one({"username": username})
         # check if user_object is found or not
         if user_object is None:
             response = jsonify(data=[])
@@ -155,7 +178,7 @@ class User(Resource):
             return user_object
 
 # Add REST User resource to API
-api.add_resource(User, '/users/', '/users/<string:user_object_id>')
+api.add_resource(User, '/users/', '/users/<string:username>')
 api.add_resource(Trip, '/trips/', '/trips/<string:trip_object_id>')
 
 # provide a custom JSON serializer for flaks_restful
