@@ -51,6 +51,9 @@ class Trip(Resource):
         else:
             cursor_object = trip_object_collection.find({"owner": owner})
             # convert cursor object
+            # [Ben-G] You can convert the cursor into a list using the list() function
+            # trips = list(cursor_object) 
+            # Above line will do the same as encoding/decoding but code is cleaner
             json_object = dumps(cursor_object)
             returned_object = json.loads(json_object)
         # check if trip_object is found or not
@@ -68,6 +71,8 @@ class Trip(Resource):
         new_trip_object = request.json
         # access trip object collection
         trip_object_collection = app.db.trips
+        # [Ben-G] Might still be in the works, but you should verify that the trip that's being
+        # updated belongs to the authenticated user
         result = trip_object_collection.update_one({"_id": ObjectId(trip_object_id)}, {"$set": new_trip_object})
         updated_trip_object = trip_object_collection.find_one({"_id": ObjectId(trip_object_id)})
         # check if trip_object is found or not
@@ -85,6 +90,8 @@ class Trip(Resource):
         # access trip object collection
         trip_object_collection = app.db.trips
         # perform deletion
+        # [Ben-G] Might still be in the works, but you should verify that the trip that's being
+        # deleted belongs to the authenticated user
         result = trip_object_collection.delete_one({"_id": ObjectId(trip_object_id)})
         if result.deleted_count == 0:
             # nothing deleted
@@ -109,6 +116,9 @@ class User(Resource):
             password_encoded = password.encode('utf-8')
             hashed_password = bcrypt.hashpw(password_encoded, bcrypt.gensalt(12))
             new_user_object["password"] = hashed_password.decode('utf-8')
+        # [Ben-G] Which type of exception are you trying to catch here? You should state the specific one.
+        # If you don't specify, you catch all. Catching all exceptions is considered bad practice since you
+        # might swallow errors that you would like to know about.
         except:
             # no password
             print("No password")
@@ -121,6 +131,7 @@ class User(Resource):
         if check_result is not None:
             # username already exists
             response = jsonify(data=[])
+            # [Ben-G] Nice use of status codes :)
             response.status_code = 409
             return response
 
@@ -129,6 +140,8 @@ class User(Resource):
         return user_object
 
     # get user with id
+    # [Ben-G] Might in the works: this endpoint should also require authentication since it will be used
+    # by the client to verify a user's credentials
     def get(self, user_object_id):
         # access user object collection
         user_object_collection = app.db.users
