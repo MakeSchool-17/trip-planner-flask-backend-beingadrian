@@ -19,9 +19,16 @@ api = Api(app)
 class Trip(Resource):
 
     # post new trip to database
+    @requires_auth
     def post(self):
+        # authentication
+        auth = request.authorization
+        owner = auth.username
+
         # access the JSON provided by client
         new_trip_object = request.json
+        new_trip_object['owner'] = owner
+
         # access colleciton in database to store the new object
         trip_object_collection = app.db.trips
         result = trip_object_collection.insert_one(new_trip_object)
@@ -31,14 +38,18 @@ class Trip(Resource):
     # get trip with id or username
     @requires_auth
     def get(self, trip_object_id=None):
+        # authorization
+        auth = request.authorization
+        owner = auth.username
+
         # access trip object collection
         trip_object_collection = app.db.trips
         returned_object = None
         if trip_object_id is not None:
             # get trip by id
-            returned_object = trip_object_collection.find_one({"_id": ObjectId(trip_object_id)})
+            returned_object = trip_object_collection.find_one({"_id": ObjectId(trip_object_id), "owner": owner})
         else:
-            cursor_object = trip_object_collection.find()
+            cursor_object = trip_object_collection.find({"owner": owner})
             # convert cursor object
             json_object = dumps(cursor_object)
             returned_object = json.loads(json_object)
@@ -69,6 +80,7 @@ class Trip(Resource):
             return updated_trip_object
 
     # delete trip with id
+    @requires_auth
     def delete(self, trip_object_id):
         # access trip object collection
         trip_object_collection = app.db.trips
@@ -103,6 +115,16 @@ class User(Resource):
             return
         # access colleciton in database to store the new object
         user_object_collection = app.db.users
+
+        # check if user already exists (and passwords using regex someday)
+        check_result = user_object_collection.find_one({"username": new_user_object["username"]})
+        if check_result is not None:
+            # username already exists
+            print("Username already exists")
+        else:
+            # success adding new user
+            print("Success")
+
         result = user_object_collection.insert_one(new_user_object)
         user_object = user_object_collection.find_one({"_id": ObjectId(result.inserted_id)})
         return user_object

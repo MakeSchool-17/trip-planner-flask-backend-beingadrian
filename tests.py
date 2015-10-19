@@ -32,18 +32,27 @@ class FlaskrTestCase(unittest.TestCase):
     # Trip tests
 
     def test_posting_trip(self):
+        # post user
+        user_response = self.app.post('/users/',
+            data=json.dumps(dict(
+                username="beingadrian",
+                password="abc123"
+            )),
+            content_type='application/json')
+
         # post trip
         response = self.app.post('/trips/',
             data=json.dumps(dict(
                 name="A trip"
             )),
-        content_type='application/json')
+            content_type='application/json',
+            headers=self.headers)
 
-        responseJSON = json.loads(response.data.decode())
+        response_json = json.loads(response.data.decode())
 
         self.assertEqual(response.status_code, 200)
         assert 'application/json' in response.content_type
-        assert 'A trip' in responseJSON["name"]
+        assert 'A trip' in response_json["name"]
 
     def test_getting_trip(self):
         # post user
@@ -59,8 +68,8 @@ class FlaskrTestCase(unittest.TestCase):
             data=json.dumps(dict(
                 name="A trip"
             )),
-        content_type='application/json',
-        headers=self.headers)
+            content_type='application/json',
+            headers=self.headers)
 
         trippost_response_json = json.loads(trip_response.data.decode())
         tripposted_object_id = trippost_response_json["_id"]
@@ -72,7 +81,7 @@ class FlaskrTestCase(unittest.TestCase):
         assert 'A trip' in response_json["name"]
 
         def test_getting_non_existent_trip(self):
-            response = self.app.get('/trips/anyeonghaseo')
+            response = self.app.get('/trips/anyeonghaseo', headers=self.headers)
             self.assertEqual(response.status_code, 404)
 
     def test_getting_user_trips(self):
@@ -89,33 +98,26 @@ class FlaskrTestCase(unittest.TestCase):
             data=json.dumps(dict(
                 name="A trip"
             )),
-        content_type='application/json')
+            content_type='application/json',
+            headers=self.headers)
 
         trip_response = self.app.post('/trips/',
             data=json.dumps(dict(
                 name="A second trip"
             )),
-        content_type='application/json')
+            content_type='application/json',
+            headers=self.headers)
 
         response = self.app.get('/trips/', headers=self.headers)
         response_json = json.loads(response.data.decode())
 
-        self.assertEqual(trip_response.status_code, 200)
+        self.assertEqual(response.status_code, 200)
 
         assert "A trip" in response_json[0]["name"]
+        assert "beingadrian" in response_json[0]["owner"]
 
 
     def test_putting_trip(self):
-        # post trip
-        response = self.app.post('/trips/',
-            data=json.dumps(dict(
-                name="Some trip"
-            )),
-            content_type='application/json')
-
-        post_response_json = json.loads(response.data.decode())
-        posted_object_id = post_response_json["_id"]
-
         # post user
         user_response = self.app.post('/users/',
             data=json.dumps(dict(
@@ -123,6 +125,17 @@ class FlaskrTestCase(unittest.TestCase):
                 password="abc123"
             )),
             content_type='application/json')
+
+        # post trip
+        response = self.app.post('/trips/',
+            data=json.dumps(dict(
+                name="Some trip"
+            )),
+            content_type='application/json',
+            headers=self.headers)
+
+        post_response_json = json.loads(response.data.decode())
+        posted_object_id = post_response_json["_id"]
 
         # put trip (update trip)
         response = self.app.put('/trips/'+posted_object_id,
@@ -140,16 +153,25 @@ class FlaskrTestCase(unittest.TestCase):
         assert 'Some trip' in response_json["name"]
 
     def test_deleting_trip(self):
+        # post user (to get authentication)
+        user_response = self.app.post('/users/',
+            data=json.dumps(dict(
+                username="beingadrian",
+                password="abc123"
+            )),
+            content_type='application/json')
+
         response = self.app.post('/trips/',
             data=json.dumps(dict(
                 name="Delete trip"
             )),
-            content_type='application/json')
+            content_type='application/json',
+            headers=self.headers)
 
         post_response_json = json.loads(response.data.decode())
         posted_object_id = post_response_json["_id"]
 
-        response = self.app.delete('/trips/'+posted_object_id)
+        response = self.app.delete('/trips/'+posted_object_id, headers=self.headers)
 
         self.assertEqual(response.status_code, 200)
         assert 'application/json' in response.content_type
@@ -157,12 +179,23 @@ class FlaskrTestCase(unittest.TestCase):
     # User tests
 
     def test_posting_user(self):
+        # post user
         response = self.app.post('/users/',
             data=json.dumps(dict(
                 username="beingadrian",
                 password="abc123"
             )),
-        content_type='application/json')
+            content_type='application/json')
+
+        # test extra user
+        new_response = self.app.post('/users/',
+            data=json.dumps(dict(
+                username="beingadrian",
+                password="abc12d"
+            )),
+            content_type='application/json')
+
+        import pdb; pdb.set_trace()
 
         response_json = json.loads(response.data.decode())
 
@@ -180,7 +213,7 @@ class FlaskrTestCase(unittest.TestCase):
                 username="beingadrian",
                 password="abc123"
             )),
-        content_type='application/json')
+            content_type='application/json')
 
         post_response_json = json.loads(response.data.decode())
         posted_object_id = post_response_json["_id"]

@@ -15,10 +15,8 @@ def requires_auth(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         auth = request.authorization
-
+        
         if not auth or not check_auth(auth.username, auth.password):
-            import pdb; pdb.set_trace()
-
             message = {'error': 'Basic auth Required.'}
             resp = jsonify(message)
             resp.status_code = 401
