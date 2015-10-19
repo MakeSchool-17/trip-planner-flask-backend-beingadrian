@@ -56,6 +56,10 @@ class FlaskrTestCase(unittest.TestCase):
 
     def test_getting_trip(self):
         # post user
+        # [Ben-G] here, and in other cases, username and pw should be passed as
+        # part of authorization header instead of as part of the body
+        # Additionally, instead of duplicating the code to create a user in each test 
+        # case that requires authentication, you can move this code into the setup function
         user_response = self.app.post('/users/',
             data=json.dumps(dict(
                 username="beingadrian",
@@ -80,6 +84,7 @@ class FlaskrTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         assert 'A trip' in response_json["name"]
 
+        # [Ben-G] This test is indented incorrectly, so it won't run
         def test_getting_non_existent_trip(self):
             response = self.app.get('/trips/anyeonghaseo', headers=self.headers)
             self.assertEqual(response.status_code, 404)
@@ -223,6 +228,7 @@ class FlaskrTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         assert 'beingadrian' in response_json["username"]
 
+        # [Ben-G] This test is indented incorrectly, so it won't run
         def test_getting_non_existent_trip(self):
             response = self.app.get('/users/asdf1415512')
             self.assertEqual(response.status_code, 404)
